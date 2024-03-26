@@ -1,3 +1,4 @@
+import argparse
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
@@ -254,12 +255,18 @@ def plot_portfolios(portfolios_daily_values: List[Dict[str, float]], sample_day:
 
 
 if __name__ == "__main__":
-    file_path = "FT_CSV_87785024.csv"
-    transactions = pd.read_csv(file_path)
+    # Set up the argument parser
+    parser = argparse.ArgumentParser(description='Compare portfolio performance against chosen indices.')
+    parser.add_argument('file_path', type=str, help='CSV file path containing transaction data')
+    parser.add_argument('indices', type=str, nargs='+', help='List of indices to compare (e.g., SPY QQQ)')
 
-    # Define a list of indices for comparison
-    compare_indices = ['SPY', 'QQQ']
-    
+    # Parse arguments
+    args = parser.parse_args()
+
+    file_path = args.file_path
+    compare_indices = args.indices
+
+    transactions = pd.read_csv(file_path)
     # Ensure unique tickers and include market indices for comparison
     tickers = list(set(get_need_stock_lists(transactions) + compare_indices))
 
