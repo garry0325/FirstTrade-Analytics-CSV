@@ -13,6 +13,10 @@ Welcome to **FirstTrade-Analytics-CSV**, the premier independent tool designed t
 1. **Clone or Download**: Get a copy of this repository to start analyzing your FirstTrade CSV data.
 2. **Prepare Your Data**: Ensure your CSV files are exported from your FirstTrade account and placed in the designated folder.
 3. **Analyze**: Run the provided scripts to process and analyze your financial data.
+- Use the command-line interface to specify your CSV file and indices for comparison:
+  ```
+  python3 main.py path/to/your/FirstTrade_data.csv SPY QQQ
+  ```
 4. **Review Insights**: Dive into the generated reports and visualizations to understand your investment journey and optimize future strategies.
 
 ### Ideal For:
@@ -21,3 +25,14 @@ Welcome to **FirstTrade-Analytics-CSV**, the premier independent tool designed t
 - Anyone interested in personal finance and investment strategy optimization.
 
 **Please Note**: *FirstTrade-Analytics-CSV* is an independently created tool and is not officially affiliated with, endorsed by, or supported by FirstTrade. It is designed to work with CSV data exported from FirstTrade accounts.
+
+### Requirements:
+- Python 3.7 or newer. Developed with Python 3.11.
+- External packages listed in `requirements.txt`.
+
+### Installation:
+Ensure you have the correct version of Python installed, then run:
+  ```
+  pip3 install -r requirements.txt
+  ```
+to install the required external packages.
