@@ -93,7 +93,8 @@ def get_daily_cash_and_stocks(transactions: pd.DataFrame) -> dict[str, dict[str,
                 current_value += row.Amount
                 holding_stock[symbol] = holding_stock.get(symbol, 0) + row.Quantity
             elif row.Action in ["Dividend", "Other"]:
-                if row.Action == "Other":
+                if row.Action == "Other" and \
+                    not ("TFR TO TYPE" in row.Description or "TFR FROM TYPE" in row.Description):
                     holding_stock[symbol] = holding_stock.get(symbol, 0) + row.Quantity
             else:
                 print(f"Format error in row: {row}")
@@ -131,7 +132,8 @@ def get_daily_cash_and_chosen_index(transactions: pd.DataFrame, historical_data:
 
     for _, row in transactions.iterrows():
         if not row.Symbol.strip():
-            if row.Action != "Interest" and "Funds Received" in row.Description:
+            if row.Action != "Interest" and \
+                ("Funds Received" in row.Description or "ACH DEPOSIT" in row.Description or "ACH DISBURSEMENT" in row.Description):
                 current_value += row.Amount
                 stock_data = historical_data[index_ticker].loc[row.TradeDate]
                 closing_price = stock_data["Close"]
@@ -283,7 +285,7 @@ if __name__ == "__main__":
 
     # Initialize lists for storing portfolio values and labels
     portfolios_daily_values = [portfolio_daily_values]
-    labels = ["Kevin's Portfolio"]
+    labels = ["My Portfolio"]
 
     # Calculate and store daily values for each index in compare_indices
     for index in compare_indices:
