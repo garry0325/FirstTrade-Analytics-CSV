@@ -4,7 +4,12 @@ import yfinance as yf
 from datetime import datetime, timedelta
 import copy
 import matplotlib.pyplot as plt
+import numpy as np
 from typing import Any, Dict, List
+
+
+RISK_FREE_RATE_ANNUAL = 0.042
+
 
 def download_stock_data(tickers: list[str], start_date: str) -> pd.DataFrame:
     """
@@ -21,7 +26,12 @@ def download_stock_data(tickers: list[str], start_date: str) -> pd.DataFrame:
     return data
 
 
-def get_daily_value_of_holdings(historical_data: pd.DataFrame, date: str, holding_stock: dict[str, int], last_known_value: float) -> float:
+def get_daily_value_of_holdings(
+    historical_data: pd.DataFrame,
+    date: str,
+    holding_stock: dict[str, int],
+    last_known_value: float,
+) -> float:
     """
     Calculate the total value of stock holdings on a specific date using historical data. If data for the specified date
     is not available, return the last known value.
@@ -93,8 +103,10 @@ def get_daily_cash_and_stocks(transactions: pd.DataFrame) -> dict[str, dict[str,
                 current_value += row.Amount
                 holding_stock[symbol] = holding_stock.get(symbol, 0) + row.Quantity
             elif row.Action in ["Dividend", "Other"]:
-                if row.Action == "Other" and \
-                    not ("TFR TO TYPE" in row.Description or "TFR FROM TYPE" in row.Description):
+                if row.Action == "Other" and not (
+                    "TFR TO TYPE" in row.Description
+                    or "TFR FROM TYPE" in row.Description
+                ):
                     holding_stock[symbol] = holding_stock.get(symbol, 0) + row.Quantity
             else:
                 print(f"Format error in row: {row}")
@@ -114,7 +126,9 @@ def get_daily_cash_and_stocks(transactions: pd.DataFrame) -> dict[str, dict[str,
     return daily_values
 
 
-def get_daily_cash_and_chosen_index(transactions: pd.DataFrame, historical_data: pd.DataFrame, index_ticker: str) -> dict[str, dict[str, Any]]:
+def get_daily_cash_and_chosen_index(
+    transactions: pd.DataFrame, historical_data: pd.DataFrame, index_ticker: str
+) -> dict[str, dict[str, Any]]:
     """
     Calculate daily cash values and holdings of a chosen index from transaction records.
 
@@ -132,13 +146,18 @@ def get_daily_cash_and_chosen_index(transactions: pd.DataFrame, historical_data:
 
     for _, row in transactions.iterrows():
         if not row.Symbol.strip():
-            if row.Action != "Interest" and \
-                ("Funds Received" in row.Description or "ACH DEPOSIT" in row.Description or "ACH DISBURSEMENT" in row.Description):
+            if row.Action != "Interest" and (
+                "Funds Received" in row.Description
+                or "ACH DEPOSIT" in row.Description
+                or "ACH DISBURSEMENT" in row.Description
+            ):
                 current_value += row.Amount
                 stock_data = historical_data[index_ticker].loc[row.TradeDate]
                 closing_price = stock_data["Close"]
                 buy_amount = int(current_value // closing_price)
-                holding_stock[index_ticker] = holding_stock.get(index_ticker, 0) + buy_amount
+                holding_stock[index_ticker] = (
+                    holding_stock.get(index_ticker, 0) + buy_amount
+                )
                 current_value -= buy_amount * closing_price
 
         daily_holdings = copy.deepcopy(holding_stock)
@@ -150,7 +169,9 @@ def get_daily_cash_and_chosen_index(transactions: pd.DataFrame, historical_data:
     return daily_values
 
 
-def get_daily_cash_without_investment(transactions: pd.DataFrame) -> dict[str, dict[str, Any]]:
+def get_daily_cash_without_investment(
+    transactions: pd.DataFrame,
+) -> dict[str, dict[str, Any]]:
     """
     Calculate daily cash values without investing in stocks or indices from transaction records.
 
@@ -179,9 +200,12 @@ def get_daily_cash_without_investment(transactions: pd.DataFrame) -> dict[str, d
     return daily_values
 
 
-
-
-def get_portfolio_daily_values(daily_values: Dict[str, Dict[str, Dict[str, float]]], start_date: str, end_date: str, historical_data: pd.DataFrame) -> Dict[str, float]:
+def get_portfolio_daily_values(
+    daily_values: Dict[str, Dict[str, Dict[str, float]]],
+    start_date: str,
+    end_date: str,
+    historical_data: pd.DataFrame,
+) -> Dict[str, float]:
     """
     Calculate the portfolio's daily values over a specified date range based on transactions and historical stock data.
 
@@ -210,7 +234,9 @@ def get_portfolio_daily_values(daily_values: Dict[str, Dict[str, Dict[str, float
         last_known_value = get_daily_value_of_holdings(
             historical_data, date_str, current_holdings, last_known_value
         )
-        portfolio_daily_values[date_str] = last_known_value + day_data.get("current_value", last_cash)
+        portfolio_daily_values[date_str] = last_known_value + day_data.get(
+            "current_value", last_cash
+        )
 
         # Update the last holdings for the next iteration
         last_holdings = current_holdings if current_holdings else last_holdings
@@ -218,7 +244,9 @@ def get_portfolio_daily_values(daily_values: Dict[str, Dict[str, Dict[str, float
     return portfolio_daily_values
 
 
-def plot_portfolios(portfolios_daily_values: List[Dict[str, float]], sample_day: int, labels: List[str]) -> None:
+def plot_portfolios(
+    portfolios_daily_values: List[Dict[str, float]], sample_day: int, labels: List[str]
+) -> None:
     """
     Plot the portfolio values over time for multiple portfolios.
 
@@ -239,12 +267,21 @@ def plot_portfolios(portfolios_daily_values: List[Dict[str, float]], sample_day:
 
         # Sampling for less cluttered plots.
         sampled_dates = [date for j, date in enumerate(dates) if j % sample_day == 0]
-        sampled_values = [value for j, value in enumerate(values) if j % sample_day == 0]
+        sampled_values = [
+            value for j, value in enumerate(values) if j % sample_day == 0
+        ]
 
         # Use label if provided, otherwise default to "Portfolio {i+1}".
         label = labels[i] if i < len(labels) else f"Portfolio {i+1}"
-        
-        plt.plot(sampled_dates, sampled_values, marker=".", linestyle="-", color=colors[i % len(colors)], label=label)
+
+        plt.plot(
+            sampled_dates,
+            sampled_values,
+            marker=".",
+            linestyle="-",
+            color=colors[i % len(colors)],
+            label=label,
+        )
 
     plt.title("Portfolio Values Over Time")
     plt.xlabel("Date")
@@ -256,11 +293,48 @@ def plot_portfolios(portfolios_daily_values: List[Dict[str, float]], sample_day:
     plt.show()
 
 
+def calculate_daily_returns(portfolio_values: Dict[str, float]) -> List[float]:
+    """Calculate daily returns from portfolio values."""
+    sorted_dates = sorted(portfolio_values.keys())
+    returns = []
+    for i in range(1, len(sorted_dates)):
+        prev_value = portfolio_values[sorted_dates[i - 1]]
+        current_value = portfolio_values[sorted_dates[i]]
+        daily_return = (current_value - prev_value) / prev_value if prev_value else 0
+        returns.append(daily_return)
+    return returns
+
+
+def calculate_sharpe_ratio(
+    daily_returns: List[float], risk_free_rate_annual: float
+) -> float:
+    """Calculate the Sharpe Ratio for daily returns."""
+    # Convert annual risk-free rate to daily
+    risk_free_rate_daily = (1 + risk_free_rate_annual) ** (1 / 252) - 1
+    excess_returns = np.array(daily_returns) - risk_free_rate_daily
+    avg_excess_return = np.mean(excess_returns)
+    std_dev_excess_return = np.std(excess_returns)
+
+    sharpe_ratio = (
+        avg_excess_return / std_dev_excess_return * np.sqrt(252)
+    )  # Annualizing
+    return sharpe_ratio
+
+
 if __name__ == "__main__":
     # Set up the argument parser
-    parser = argparse.ArgumentParser(description='Compare portfolio performance against chosen indices.')
-    parser.add_argument('file_path', type=str, help='CSV file path containing transaction data')
-    parser.add_argument('indices', type=str, nargs='+', help='List of indices to compare (e.g., SPY QQQ)')
+    parser = argparse.ArgumentParser(
+        description="Compare portfolio performance against chosen indices."
+    )
+    parser.add_argument(
+        "file_path", type=str, help="CSV file path containing transaction data"
+    )
+    parser.add_argument(
+        "indices",
+        type=str,
+        nargs="+",
+        help="List of indices to compare (e.g., SPY QQQ)",
+    )
 
     # Parse arguments
     args = parser.parse_args()
@@ -281,7 +355,9 @@ if __name__ == "__main__":
 
     # Calculate daily values for the individual portfolio
     daily_values = get_daily_cash_and_stocks(transactions)
-    portfolio_daily_values = get_portfolio_daily_values(daily_values, start_date, end_date, historical_data)
+    portfolio_daily_values = get_portfolio_daily_values(
+        daily_values, start_date, end_date, historical_data
+    )
 
     # Initialize lists for storing portfolio values and labels
     portfolios_daily_values = [portfolio_daily_values]
@@ -289,25 +365,27 @@ if __name__ == "__main__":
 
     # Calculate and store daily values for each index in compare_indices
     for index in compare_indices:
-        daily_values_index = get_daily_cash_and_chosen_index(transactions, historical_data, index)
-        portfolio_daily_values_index = get_portfolio_daily_values(daily_values_index, start_date, end_date, historical_data)
+        daily_values_index = get_daily_cash_and_chosen_index(
+            transactions, historical_data, index
+        )
+        portfolio_daily_values_index = get_portfolio_daily_values(
+            daily_values_index, start_date, end_date, historical_data
+        )
         portfolios_daily_values.append(portfolio_daily_values_index)
         labels.append(f"{index} Index")
 
     # Calculate daily values for the cash-only strategy
     daily_values_cash = get_daily_cash_without_investment(transactions)
-    portfolio_daily_values_cash = get_portfolio_daily_values(daily_values_cash, start_date, end_date, historical_data)
-    
+    portfolio_daily_values_cash = get_portfolio_daily_values(
+        daily_values_cash, start_date, end_date, historical_data
+    )
+
     # Add cash-only strategy to the lists
     portfolios_daily_values.append(portfolio_daily_values_cash)
     labels.append("Cash Only")
 
     # Plot portfolio values over time
-    plot_portfolios(
-        portfolios_daily_values,
-        sample_day=15,
-        labels=labels
-    )
+    plot_portfolios(portfolios_daily_values, sample_day=15, labels=labels)
 
     cash_only_final_value = list(portfolio_daily_values_cash.values())[-1]
 
@@ -315,9 +393,16 @@ if __name__ == "__main__":
     for label, portfolio_daily_values in zip(labels, portfolios_daily_values):
         # Extract the last value of the current portfolio
         portfolio_final_value = list(portfolio_daily_values.values())[-1]
-        
+
         # Calculate percentage earning compared to cash only
-        percentage_earning = ((portfolio_final_value - cash_only_final_value) / cash_only_final_value) * 100
-        
-        # Print both the final value of the portfolio and its percentage earning compared to cash only
-        print(f"{label}: Final Value = {portfolio_final_value:.2f}, Percentage Earning = {percentage_earning:.2f}%")
+        percentage_earning = (
+            (portfolio_final_value - cash_only_final_value) / cash_only_final_value
+        ) * 100
+
+        # Example usage after calculating `portfolio_daily_values`:
+        daily_returns = calculate_daily_returns(portfolio_daily_values)
+        sharpe_ratio = calculate_sharpe_ratio(daily_returns, RISK_FREE_RATE_ANNUAL)
+
+        print(
+            f"{label}: Final Value = {portfolio_final_value:.2f}, Percentage Earning = {percentage_earning:.2f}%, Sharpe Ratio: {sharpe_ratio:.2f}. "
+        )
