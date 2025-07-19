@@ -226,7 +226,7 @@ def get_portfolio_daily_values(
     last_holdings: Dict[str, int] = {}
     last_cash = 0
     for single_date in date_range:
-        date_str = single_date.strftime("%Y-%m-%d")
+        date_str = single_date.strftime("%Y/%-m/%d")
         day_data = daily_values.get(date_str, {})
 
         current_holdings = day_data.get("holding_stock", last_holdings)
@@ -321,6 +321,13 @@ def calculate_sharpe_ratio(
     return sharpe_ratio
 
 
+def date_to_yfinance_format(date_str: str) -> str:
+    """Convert date to YYYY-MM-DD format for yfinance."""
+    try:
+        return pd.to_datetime(date_str).strftime('%Y-%m-%d')
+    except:
+        return date_str
+
 if __name__ == "__main__":
     # Set up the argument parser
     parser = argparse.ArgumentParser(
@@ -347,11 +354,16 @@ if __name__ == "__main__":
     tickers = list(set(get_need_stock_lists(transactions) + compare_indices))
 
     # Determine the date range from transaction data
-    start_date = transactions["TradeDate"].min()
+    start_date = date_to_yfinance_format(transactions["TradeDate"].min())
     end_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
 
     # Download historical data for all tickers
     historical_data = download_stock_data(tickers, start_date)
+
+    # Convert historical data index to match our date format
+    for ticker in tickers:
+        if ticker in historical_data.columns.get_level_values(0):
+            historical_data[ticker].index = historical_data[ticker].index.strftime('%Y/%-m/%-d')
 
     # Calculate daily values for the individual portfolio
     daily_values = get_daily_cash_and_stocks(transactions)
